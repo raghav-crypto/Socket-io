@@ -13,10 +13,15 @@ import { Link } from "react-router-dom";
 import socket from "../../socketConfig.js";
 
 function Dashboard({ authenticated, loading, email }) {
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState(null);
+  // const [noOrder, setNoOrder] = useState(null);
   dayjs.extend(relativeTime);
   useEffect(() => {
-    socket.emit("init", email);
+    let mounted = true;
+    if (mounted) {
+      socket.emit("init", email);
+    }
+    return () => (mounted = false);
   }, [email]);
   useEffect(() => {
     let mounted = true;
@@ -29,28 +34,12 @@ function Dashboard({ authenticated, loading, email }) {
     let mounted = true;
     if (mounted) {
       socket.on("updateOrders", (data) => {
-        console.log(data);
         setOrders(data.orders);
       });
     }
     return () => (mounted = false);
   }, []);
   console.log(orders);
-  if (loading) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginTop: "150px",
-        }}
-      >
-        <CircularProgress size={120} thickness={2} />
-      </div>
-    );
-  }
-
   if (!loading && !authenticated) {
     return (
       <div className="dashboard">
@@ -79,12 +68,27 @@ function Dashboard({ authenticated, loading, email }) {
       </div>
     );
   } else {
-    return (
-      <div className="dashboard">
-        <Paper className="paper">
-          <Typography variant="h4">View Order : {email}</Typography>
-          {orders &&
-            orders.map((order) => (
+    if (orders === null || loading) {
+      return (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            marginTop: "150px",
+          }}
+        >
+          <CircularProgress size={120} thickness={2} />
+        </div>
+      );
+    } else {
+      return (
+        <div className="dashboard">
+          <Paper className="paper">
+            <Typography variant="h4">View Order : {email}</Typography>
+            <Typography variant="h6">{orders.length} order's</Typography>
+
+            {orders.map((order) => (
               <Card
                 style={{
                   width: "inherit",
@@ -99,9 +103,22 @@ function Dashboard({ authenticated, loading, email }) {
                 <span>{dayjs(order.date).from(dayjs(), true)}</span>
               </Card>
             ))}
-        </Paper>
-      </div>
-    );
+            {!orders.length && (
+              <Typography
+                style={{
+                  marginTop: "2em",
+                  background: "#4b5d67",
+                  color: "#dddddd",
+                }}
+                variant="h4"
+              >
+                No Order's yet !
+              </Typography>
+            )}
+          </Paper>
+        </div>
+      );
+    }
   }
 }
 const mapStateToProps = (state) => ({

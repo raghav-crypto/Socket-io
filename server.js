@@ -52,6 +52,14 @@ io.on("connect", (socket) => {
   socket.on("get-orders", async (email) => {
     if (email) {
       let orders = await Orders.findOne({ user: email.toString() });
+      if (!orders) {
+        email.toString();
+        socket.join(email);
+        const orders = {
+          orders: [],
+        };
+        io.to(email).emit("updateOrders", orders);
+      }
       if (orders) {
         // socket.join(orderId);
         // io.to(orderId).emit("updateOrders", orders);
